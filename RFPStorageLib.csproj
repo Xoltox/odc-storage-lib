@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>RFPStorage</RootNamespace>
+    <AssemblyName>RFPStorageLib</AssemblyName>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Remove="tests/**;dist/**;publish/**" />
+    <EmbeddedResource Remove="tests/**;dist/**;publish/**" />
+    <None Remove="tests/**;dist/**;publish/**" />
+    <EmbeddedResource Include="Resources/icon.png" LogicalName="RFPStorage.Resources.icon.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.104.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageReference Include="OutSystems.ExternalLibraries.SDK" Version="1.7.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="RFPStorageLib.UnitTests" />
+  </ItemGroup>
+</Project>
