@@ -2,17 +2,17 @@ using System.Net;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Microsoft.Extensions.Logging;
-using RFPStorage.Interfaces;
-using RFPStorage.Internal;
-using RFPStorage.Structures;
+using OdcStorage.Interfaces;
+using OdcStorage.Internal;
+using OdcStorage.Structures;
 
-namespace RFPStorage.Implementations;
+namespace OdcStorage.Implementations;
 
-public class RFPStorageLib : IRFPStorageLib
+public class OdcStorageLib : IOdcStorageLib
 {
     private readonly ILogger _logger;
 
-    public RFPStorageLib(ILogger logger)
+    public OdcStorageLib(ILogger logger)
     {
         _logger = logger;
     }
@@ -33,7 +33,7 @@ public class RFPStorageLib : IRFPStorageLib
             ContentType = contentType,
             Protocol = S3ClientFactory.PresignProtocol(connection),
         });
-        _logger.LogInformation("RFPStorage PresignPut key={Key} expirySeconds={Expiry}", objectKey, expirySeconds);
+        _logger.LogInformation("OdcStorage PresignPut key={Key} expirySeconds={Expiry}", objectKey, expirySeconds);
         return new PresignResult { Url = url, Method = "PUT", RequiredContentType = contentType, ExpiresAtUtc = expires };
     }
 
@@ -58,7 +58,7 @@ public class RFPStorageLib : IRFPStorageLib
                 "attachment; filename=\"" + ObjectKeys.AsciiFileName(clean) + "\"; filename*=UTF-8''" + Uri.EscapeDataString(clean);
         }
         var url = client.GetPreSignedURL(req);
-        _logger.LogInformation("RFPStorage PresignGet key={Key} expirySeconds={Expiry}", objectKey, expirySeconds);
+        _logger.LogInformation("OdcStorage PresignGet key={Key} expirySeconds={Expiry}", objectKey, expirySeconds);
         return new PresignResult { Url = url, Method = "GET", RequiredContentType = string.Empty, ExpiresAtUtc = expires };
     }
 
@@ -69,7 +69,7 @@ public class RFPStorageLib : IRFPStorageLib
         try
         {
             var r = client.GetObjectMetadataAsync(connection.Bucket, objectKey).GetAwaiter().GetResult();
-            _logger.LogInformation("RFPStorage Head key={Key} exists=true", objectKey);
+            _logger.LogInformation("OdcStorage Head key={Key} exists=true", objectKey);
             return new ObjectInfo
             {
                 Exists = true,
@@ -81,7 +81,7 @@ public class RFPStorageLib : IRFPStorageLib
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogInformation("RFPStorage Head key={Key} exists=false", objectKey);
+            _logger.LogInformation("OdcStorage Head key={Key} exists=false", objectKey);
             return new ObjectInfo { Exists = false, ContentType = string.Empty, ETag = string.Empty };
         }
     }
@@ -96,21 +96,21 @@ public class RFPStorageLib : IRFPStorageLib
             var code = (int)r.HttpStatusCode;
             if (code == 404)
             {
-                _logger.LogInformation("RFPStorage Delete key={Key} deleted=false", objectKey);
+                _logger.LogInformation("OdcStorage Delete key={Key} deleted=false", objectKey);
                 return new DeleteResult { Deleted = false };
             }
             if (code < 200 || code > 299)
-                throw new InvalidOperationException("RFPStorage: unexpected delete status " + code + ".");
-            _logger.LogInformation("RFPStorage Delete key={Key} deleted=true", objectKey);
+                throw new InvalidOperationException("OdcStorage: unexpected delete status " + code + ".");
+            _logger.LogInformation("OdcStorage Delete key={Key} deleted=true", objectKey);
             return new DeleteResult { Deleted = true };
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
-            _logger.LogInformation("RFPStorage Delete key={Key} deleted=false", objectKey);
+            _logger.LogInformation("OdcStorage Delete key={Key} deleted=false", objectKey);
             return new DeleteResult { Deleted = false };
         }
     }
 
-    public string BuildObjectKey(string stage, string rfpId, string documentId, string fileName)
-        => ObjectKeys.Build(stage, rfpId, documentId, fileName);
+    public string BuildObjectKey(string stage, string groupId, string documentId, string fileName)
+        => ObjectKeys.Build(stage, groupId, documentId, fileName);
 }

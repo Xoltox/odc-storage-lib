@@ -31,7 +31,7 @@ S3-compatible object storage for OutSystems Developer Cloud (ODC): presigned URL
 | `PresignGet` | `connection`, `objectKey`, `expirySeconds`, `downloadFileName` (optional) | `PresignResult` |
 | `Head` | `connection`, `objectKey` | `ObjectInfo` (`Exists` is false when missing) |
 | `Delete` | `connection`, `objectKey` | `DeleteResult` (`Deleted` is false when missing) |
-| `BuildObjectKey` | `stage`, `rfpId`, `documentId`, `fileName` | text key |
+| `BuildObjectKey` | `stage`, `groupId`, `documentId`, `fileName` | text key |
 
 ## Structures
 
@@ -44,7 +44,7 @@ S3-compatible object storage for OutSystems Developer Cloud (ODC): presigned URL
 
 ## Install
 
-1. Download `odc-storage-lib-v0.1.0.zip` from the [latest release](https://github.com/Xoltox/odc-storage-lib/releases/latest).
+1. Download `odc-storage-lib-v0.2.0.zip` from the [latest release](https://github.com/Xoltox/odc-storage-lib/releases/latest).
 2. In the ODC Portal, open **External Logic**, upload the zip and publish it.
 3. In ODC Studio, add the library as a dependency and select the actions you need.
 
@@ -60,7 +60,7 @@ Build a `StorageConnection` from secret site settings (never store it in an enti
 4. Later: `PresignGet(connection, key, 300, "Report.pdf")` and give `Result.Url` to the browser.
 5. `Delete(connection, key)` when the object is no longer needed.
 
-`BuildObjectKey` produces `<stage>/rfp/<rfpId>/<documentId>/<fileName>`, where stage is `dev`, `test` or `prod`, ids match `[A-Za-z0-9_-]{1,64}`, and the file name is sanitised (separators and control characters become `_`, leading dots are stripped, 180 characters maximum keeping the extension). It is a convenience; the other actions accept any valid key.
+`BuildObjectKey` produces `<stage>/items/<groupId>/<documentId>/<fileName>`, where stage is `dev`, `test` or `prod`, ids match `[A-Za-z0-9_-]{1,64}`, and the file name is sanitised (separators and control characters become `_`, leading dots are stripped, 180 characters maximum keeping the extension). It is a convenience; the other actions accept any valid key.
 
 ## Configuration
 
@@ -74,7 +74,13 @@ Build a `StorageConnection` from secret site settings (never store it in an enti
 | `PresignEndpoint` | Optional browser-facing scheme and host (no path, query or fragment). Presigned URLs are signed against it; head and delete still use `ServiceUrl`. Empty means `ServiceUrl`. |
 | `AllowInsecureHttp` | DEV ONLY. Allows plain http for both URLs on any host. Never enable in production. |
 
-Errors are `ArgumentException` with a message starting `RFPStorage:`. Configure CORS on your bucket so the browser may `PUT` and `GET` from your app origin.
+Validation errors (bad key, URL, expiry, content type, missing bucket) are `ArgumentException` with a message starting `OdcStorage:`. Network calls (`Head`, `Delete`) can fail differently, and those failures are not wrapped:
+
+- `Head` and `Delete` treat an HTTP 404 from the store as a normal result (`Exists = false`, `Deleted = false`).
+- `Delete` throws `InvalidOperationException` (`OdcStorage: unexpected delete status <code>.`) if the store answers without an SDK exception but with a status outside 200-299 other than 404.
+- Any other failure, such as 403 access denied, 5xx, a missing bucket, DNS or TLS errors and timeouts, propagates as the AWS SDK exception (`AmazonS3Exception`, `AmazonServiceException` or `HttpRequestException`) with its original message. These do not carry the `OdcStorage:` prefix. In ODC they surface as an unhandled exception from the action, so catch them in the calling logic if you need to react.
+
+Configure CORS on your bucket so the browser may `PUT` and `GET` from your app origin.
 
 ## Building from source
 
@@ -85,26 +91,26 @@ dotnet build
 powershell -File generate_upload_package.ps1
 ```
 
-The script runs `dotnet publish -c Release -r linux-x64 --self-contained false` and zips the output flat into `dist/RFPStorageLib.zip`.
+The script runs `dotnet publish -c Release -r linux-x64 --self-contained false` and zips the output flat into `dist/OdcStorageLib.zip`.
 
 ## Testing
 
 ```
-dotnet test --project tests/RFPStorageLib.UnitTests
+dotnet test --project tests/OdcStorageLib.UnitTests
 ```
 
 `global.json` selects the Microsoft.Testing.Platform runner required on .NET 10. Unit tests are offline.
 
 Integration tests run against a real endpoint and skip unless these environment variables are set:
 
-- `RFPSTORAGE_IT_SERVICEURL`, `RFPSTORAGE_IT_BUCKET`, `RFPSTORAGE_IT_ACCESSKEY`, `RFPSTORAGE_IT_SECRETKEY` (required)
-- `RFPSTORAGE_IT_REGION` (default `us-east-1`), `RFPSTORAGE_IT_PRESIGNENDPOINT` (optional), `RFPSTORAGE_IT_FORCEPATHSTYLE` (default `true`)
+- `ODCSTORAGE_IT_SERVICEURL`, `ODCSTORAGE_IT_BUCKET`, `ODCSTORAGE_IT_ACCESSKEY`, `ODCSTORAGE_IT_SECRETKEY` (required)
+- `ODCSTORAGE_IT_REGION` (default `us-east-1`), `ODCSTORAGE_IT_PRESIGNENDPOINT` (optional), `ODCSTORAGE_IT_FORCEPATHSTYLE` (default `true`)
 
 ```
-dotnet test --project tests/RFPStorageLib.IntegrationTests
+dotnet test --project tests/OdcStorageLib.IntegrationTests
 ```
 
-Use a throwaway bucket; the tests write and delete objects under `test/rfp/`.
+Use a throwaway bucket; the tests write and delete objects under `test/items/`.
 
 ## Security notes
 
@@ -118,9 +124,23 @@ Use a throwaway bucket; the tests write and delete objects under `test/rfp/`.
 - No multipart upload; a single presigned PUT per object.
 - No list, copy or bulk delete actions.
 - Expiry is limited to 60 to 3600 seconds.
-- `BuildObjectKey` encodes an `rfp` path convention and a fixed stage set.
+- `BuildObjectKey` encodes an `items` path convention and a fixed stage set.
 - Packaged for `linux-x64` (the ODC runtime).
 
 ## License
 
 [MIT](LICENSE) - copyright 2026 Parth Sharma.
+
+## Third-party licences
+
+This library is MIT licensed. The published zip contains these third-party assemblies:
+
+| Package | Version | Licence |
+|---|---|---|
+| AWSSDK.S3 | 4.0.104.1 | Apache-2.0 |
+| AWSSDK.Core | 4.0.102.8 | Apache-2.0 |
+| OutSystems.ExternalLibraries.SDK | 1.7.0 | BSD-3-Clause |
+| Microsoft.Extensions.Logging.Abstractions | 10.0.12 | MIT |
+| Microsoft.Extensions.DependencyInjection.Abstractions | 10.0.12 | MIT |
+
+Versions are pinned by `packages.lock.json`.

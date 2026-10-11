@@ -2,11 +2,11 @@ using System.Net;
 using System.Text;
 using Amazon.S3;
 using Microsoft.Extensions.Logging;
-using RFPStorage.Internal;
-using RFPStorage.Structures;
+using OdcStorage.Internal;
+using OdcStorage.Structures;
 using Xunit;
 
-namespace RFPStorage.UnitTests;
+namespace OdcStorage.UnitTests;
 
 public class ReviewFixTests
 {
@@ -29,7 +29,7 @@ public class ReviewFixTests
         Bucket = "my-bucket", ForcePathStyle = true, PresignEndpoint = presign!, AllowInsecureHttp = insecure,
     };
 
-    private static Implementations.RFPStorageLib Lib(ILogger? l = null) => new(l ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
+    private static Implementations.OdcStorageLib Lib(ILogger? l = null) => new(l ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance);
 
     // 1. contentType
     [Theory]
@@ -42,7 +42,7 @@ public class ReviewFixTests
     public void ContentTypeRows(string ct, bool ok)
     {
         if (ok) Assert.NotEmpty(Lib().PresignPut(Conn(), "dev/k.pdf", ct, 300).Url);
-        else Assert.StartsWith("RFPStorage:", Assert.Throws<ArgumentException>(() => Lib().PresignPut(Conn(), "dev/k.pdf", ct, 300)).Message);
+        else Assert.StartsWith("OdcStorage:", Assert.Throws<ArgumentException>(() => Lib().PresignPut(Conn(), "dev/k.pdf", ct, 300)).Message);
     }
 
     [Fact]
@@ -87,8 +87,8 @@ public class ReviewFixTests
 
     // 4. key shape, Cf, NFC
     [Theory]
-    [InlineData("dev/rfp/r/d/")]
-    [InlineData("dev//rfp/r/d/f.pdf")]
+    [InlineData("dev/items/r/d/")]
+    [InlineData("dev//items/r/d/f.pdf")]
     [InlineData("a//b")]
     public void SlashShapesRejected(string key) =>
         Assert.Throws<ArgumentException>(() => ObjectKeys.ValidateKey(key));
@@ -119,8 +119,8 @@ public class ReviewFixTests
     {
         var log = new CaptureLogger();
         var lib = Lib(log);
-        var put = lib.PresignPut(Conn(), "dev/rfp/r/d/f.pdf", "application/pdf", 300);
-        lib.PresignGet(Conn(), "dev/rfp/r/d/f.pdf", 300, "x.pdf");
+        var put = lib.PresignPut(Conn(), "dev/items/r/d/f.pdf", "application/pdf", 300);
+        lib.PresignGet(Conn(), "dev/items/r/d/f.pdf", 300, "x.pdf");
         Assert.NotEmpty(log.Lines);
         foreach (var l in log.Lines)
         {
@@ -231,5 +231,5 @@ public class ReviewFixTests
     }
 
     [Fact]
-    public void ValidateKeyAcceptsNormalKey() => ObjectKeys.ValidateKey("dev/rfp/r/d/" + Encoding.UTF8.GetString(new byte[] { 0x61 }));
+    public void ValidateKeyAcceptsNormalKey() => ObjectKeys.ValidateKey("dev/items/r/d/" + Encoding.UTF8.GetString(new byte[] { 0x61 }));
 }

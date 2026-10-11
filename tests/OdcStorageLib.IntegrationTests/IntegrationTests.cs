@@ -2,24 +2,24 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging.Abstractions;
-using RFPStorage.Implementations;
-using RFPStorage.Structures;
+using OdcStorage.Implementations;
+using OdcStorage.Structures;
 using Xunit;
 
-namespace RFPStorage.IntegrationTests;
+namespace OdcStorage.IntegrationTests;
 
-// Each test skips visibly unless RFPSTORAGE_IT_SERVICEURL, _BUCKET, _ACCESSKEY, _SECRETKEY are set.
-// Optional: RFPSTORAGE_IT_REGION (default us-east-1), RFPSTORAGE_IT_PRESIGNENDPOINT,
-// RFPSTORAGE_IT_FORCEPATHSTYLE (default true).
+// Each test skips visibly unless ODCSTORAGE_IT_SERVICEURL, _BUCKET, _ACCESSKEY, _SECRETKEY are set.
+// Optional: ODCSTORAGE_IT_REGION (default us-east-1), ODCSTORAGE_IT_PRESIGNENDPOINT,
+// ODCSTORAGE_IT_FORCEPATHSTYLE (default true).
 public class IntegrationTests
 {
-    private static string? Env(string n) => Environment.GetEnvironmentVariable("RFPSTORAGE_IT_" + n);
+    private static string? Env(string n) => Environment.GetEnvironmentVariable("ODCSTORAGE_IT_" + n);
 
     private static StorageConnection ConnOrSkip()
     {
         var url = Env("SERVICEURL"); var bucket = Env("BUCKET"); var ak = Env("ACCESSKEY"); var sk = Env("SECRETKEY");
         if (string.IsNullOrEmpty(url) || string.IsNullOrEmpty(bucket) || string.IsNullOrEmpty(ak) || string.IsNullOrEmpty(sk))
-            Assert.Skip("RFPSTORAGE_IT_SERVICEURL/BUCKET/ACCESSKEY/SECRETKEY not set");
+            Assert.Skip("ODCSTORAGE_IT_SERVICEURL/BUCKET/ACCESSKEY/SECRETKEY not set");
         return new StorageConnection
         {
             ServiceUrl = url!, Bucket = bucket!, AccessKey = ak!, SecretKey = sk!,
@@ -29,8 +29,8 @@ public class IntegrationTests
         };
     }
 
-    private static Implementations.RFPStorageLib Lib() => new(NullLogger.Instance);
-    private static string NewKey(string name) => $"test/rfp/it-{Guid.NewGuid():N}/doc-1/{name}";
+    private static Implementations.OdcStorageLib Lib() => new(NullLogger.Instance);
+    private static string NewKey(string name) => $"test/items/it-{Guid.NewGuid():N}/doc-1/{name}";
 
     private static async Task<HttpResponseMessage> Put(string url, byte[] body, string contentType)
     {

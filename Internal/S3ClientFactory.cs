@@ -1,8 +1,8 @@
 using Amazon.Runtime;
 using Amazon.S3;
-using RFPStorage.Structures;
+using OdcStorage.Structures;
 
-namespace RFPStorage.Internal;
+namespace OdcStorage.Internal;
 
 internal static class S3ClientFactory
 {

@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace RFPStorage.Internal;
+namespace OdcStorage.Internal;
 
 internal static class ObjectKeys
 {
@@ -10,7 +10,7 @@ internal static class ObjectKeys
     private static readonly string[] Stages = { "dev", "test", "prod" };
     public const int MaxFileNameChars = 180;
 
-    public static ArgumentException Err(string msg) => new("RFPStorage: " + msg);
+    public static ArgumentException Err(string msg) => new("OdcStorage: " + msg);
 
     public static void ValidateKey(string? key)
     {
@@ -72,12 +72,12 @@ internal static class ObjectKeys
         return s.Replace("..", "_");
     }
 
-    public static string Build(string stage, string rfpId, string documentId, string fileName)
+    public static string Build(string stage, string groupId, string documentId, string fileName)
     {
         if (Array.IndexOf(Stages, stage) < 0) throw Err("stage must be dev, test or prod.");
-        if (!IdPattern.IsMatch(rfpId ?? string.Empty)) throw Err("rfpId must match [A-Za-z0-9_-]{1,64}.");
+        if (!IdPattern.IsMatch(groupId ?? string.Empty)) throw Err("groupId must match [A-Za-z0-9_-]{1,64}.");
         if (!IdPattern.IsMatch(documentId ?? string.Empty)) throw Err("documentId must match [A-Za-z0-9_-]{1,64}.");
-        var key = $"{stage}/rfp/{rfpId}/{documentId}/{SanitizeFileName(fileName)}";
+        var key = $"{stage}/items/{groupId}/{documentId}/{SanitizeFileName(fileName)}";
         ValidateKey(key);
         return key;
     }

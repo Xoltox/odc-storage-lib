@@ -1,6 +1,6 @@
 using OutSystems.ExternalLibraries.SDK;
 
-namespace RFPStorage.Structures;
+namespace OdcStorage.Structures;
 
 [OSStructure(Description = "Connection settings for an S3-compatible endpoint. Fill from secret site settings; never store in an entity.")]
 public struct StorageConnection

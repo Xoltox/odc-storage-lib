@@ -3,15 +3,21 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>RFPStorage</RootNamespace>
-    <AssemblyName>RFPStorageLib</AssemblyName>
+    <RootNamespace>OdcStorage</RootNamespace>
+    <AssemblyName>OdcStorageLib</AssemblyName>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <PathMap>$(MSBuildProjectDirectory)=/src</PathMap>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
+    <DebugType>portable</DebugType>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="tests/**;dist/**;publish/**" />
     <EmbeddedResource Remove="tests/**;dist/**;publish/**" />
     <None Remove="tests/**;dist/**;publish/**" />
-    <EmbeddedResource Include="Resources/icon.png" LogicalName="RFPStorage.Resources.icon.png" />
+    <EmbeddedResource Include="Resources/icon.png" LogicalName="OdcStorage.Resources.icon.png" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.104.1" />
@@ -19,6 +25,6 @@
     <PackageReference Include="OutSystems.ExternalLibraries.SDK" Version="1.7.0" />
   </ItemGroup>
   <ItemGroup>
-    <InternalsVisibleTo Include="RFPStorageLib.UnitTests" />
+    <InternalsVisibleTo Include="OdcStorageLib.UnitTests" />
   </ItemGroup>
 </Project>

@@ -13,6 +13,6 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../RFPStorageLib.csproj" />
+    <ProjectReference Include="../../OdcStorageLib.csproj" />
   </ItemGroup>
 </Project>

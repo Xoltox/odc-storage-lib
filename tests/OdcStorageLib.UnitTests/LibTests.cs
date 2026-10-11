@@ -1,12 +1,12 @@
 using System.Reflection;
 using Microsoft.Extensions.Logging.Abstractions;
-using RFPStorage.Implementations;
-using RFPStorage.Interfaces;
-using RFPStorage.Internal;
-using RFPStorage.Structures;
+using OdcStorage.Implementations;
+using OdcStorage.Interfaces;
+using OdcStorage.Internal;
+using OdcStorage.Structures;
 using Xunit;
 
-namespace RFPStorage.UnitTests;
+namespace OdcStorage.UnitTests;
 
 public class LibTests
 {
@@ -17,14 +17,14 @@ public class LibTests
         Bucket = bucket, ForcePathStyle = path, PresignEndpoint = presign ?? "",
     };
 
-    private static IRFPStorageLib Lib() => new Implementations.RFPStorageLib(NullLogger.Instance);
+    private static IOdcStorageLib Lib() => new Implementations.OdcStorageLib(NullLogger.Instance);
 
     // ---- key validation (12 rows) ----
     public static TheoryData<string, bool> KeyRows => new()
     {
         { "/leading", false }, { "a/../b", false }, { "a\\b", false }, { "a/b\u0001c", false },
         { "", false }, { new string('a', 1025), false }, { new string('a', 1024), true },
-        { "dev/rfp/r1/d1/file.pdf", true }, { "dev/rfp/r1/d1/café menu.pdf", true },
+        { "dev/items/r1/d1/file.pdf", true }, { "dev/items/r1/d1/café menu.pdf", true },
         { "with space/and spaces.txt", true }, { "a/b/c/d/e/f.bin", true }, { "tab\there", false },
     };
 
@@ -32,7 +32,7 @@ public class LibTests
     public void KeyValidation(string key, bool ok)
     {
         if (ok) ObjectKeys.ValidateKey(key);
-        else Assert.StartsWith("RFPStorage:", Assert.Throws<ArgumentException>(() => ObjectKeys.ValidateKey(key)).Message);
+        else Assert.StartsWith("OdcStorage:", Assert.Throws<ArgumentException>(() => ObjectKeys.ValidateKey(key)).Message);
     }
 
     [Fact]
@@ -45,24 +45,24 @@ public class LibTests
     // ---- BuildObjectKey (8 rows) ----
     public static TheoryData<string, string, string, string, string?> BuildRows => new()
     {
-        { "dev", "rfp1", "doc1", "Tender Pack.pdf", "dev/rfp/rfp1/doc1/Tender Pack.pdf" },
-        { "prod", "r_1-x", "d-2", "a.docx", "prod/rfp/r_1-x/d-2/a.docx" },
-        { "test", "r1", "d1", "../x.pdf", "test/rfp/r1/d1/_x.pdf" },
-        { "dev", "r1", "d1", ".hidden", "dev/rfp/r1/d1/hidden" },
+        { "dev", "grp1", "doc1", "Tender Pack.pdf", "dev/items/grp1/doc1/Tender Pack.pdf" },
+        { "prod", "r_1-x", "d-2", "a.docx", "prod/items/r_1-x/d-2/a.docx" },
+        { "test", "r1", "d1", "../x.pdf", "test/items/r1/d1/_x.pdf" },
+        { "dev", "r1", "d1", ".hidden", "dev/items/r1/d1/hidden" },
         { "staging", "r1", "d1", "a.pdf", null },
         { "dev", "a/b", "d1", "a.pdf", null },
         { "dev", "r1", "", "a.pdf", null },
-        { "dev", "r1", "d1", "a/b\\c.pdf", "dev/rfp/r1/d1/a_b_c.pdf" },
+        { "dev", "r1", "d1", "a/b\\c.pdf", "dev/items/r1/d1/a_b_c.pdf" },
     };
 
     [Theory, MemberData(nameof(BuildRows))]
-    public void BuildObjectKeyTable(string stage, string rfp, string doc, string file, string? expected)
+    public void BuildObjectKeyTable(string stage, string grp, string doc, string file, string? expected)
     {
         var lib = Lib();
         if (expected is null)
-            Assert.StartsWith("RFPStorage:", Assert.Throws<ArgumentException>(() => lib.BuildObjectKey(stage, rfp, doc, file)).Message);
+            Assert.StartsWith("OdcStorage:", Assert.Throws<ArgumentException>(() => lib.BuildObjectKey(stage, grp, doc, file)).Message);
         else
-            Assert.Equal(expected, lib.BuildObjectKey(stage, rfp, doc, file));
+            Assert.Equal(expected, lib.BuildObjectKey(stage, grp, doc, file));
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class LibTests
     }
 
     [Fact]
-    public void RfpIdOver64Rejected() =>
+    public void GroupIdOver64Rejected() =>
         Assert.Throws<ArgumentException>(() => Lib().BuildObjectKey("dev", new string('a', 65), "d1", "a.pdf"));
 
     // ---- expiry (6 rows x put/get) ----
@@ -88,7 +88,7 @@ public class LibTests
     public void ExpiryPut(int s, bool ok)
     {
         if (ok) Assert.NotEmpty(Lib().PresignPut(Conn(), "dev/k.pdf", "application/pdf", s).Url);
-        else Assert.StartsWith("RFPStorage:", Assert.Throws<ArgumentException>(() => Lib().PresignPut(Conn(), "dev/k.pdf", "application/pdf", s)).Message);
+        else Assert.StartsWith("OdcStorage:", Assert.Throws<ArgumentException>(() => Lib().PresignPut(Conn(), "dev/k.pdf", "application/pdf", s)).Message);
     }
 
     [Theory, MemberData(nameof(ExpiryRows))]
@@ -102,8 +102,8 @@ public class LibTests
     [Fact]
     public void PresignPutShape()
     {
-        var r = Lib().PresignPut(Conn(), "dev/rfp/r1/d1/a b.pdf", "application/pdf", 300);
-        Assert.StartsWith("https://s3.example.test/my-bucket/dev/rfp/r1/d1/", r.Url);
+        var r = Lib().PresignPut(Conn(), "dev/items/r1/d1/a b.pdf", "application/pdf", 300);
+        Assert.StartsWith("https://s3.example.test/my-bucket/dev/items/r1/d1/", r.Url);
         Assert.Contains("X-Amz-Signature=", r.Url);
         Assert.Contains("X-Amz-Expires=300", r.Url);
         var signed = Uri.UnescapeDataString(Query(r.Url)["X-Amz-SignedHeaders"]);
@@ -187,7 +187,7 @@ public class LibTests
     // ---- connection validation ----
     [Fact]
     public void MissingBucketRejected() =>
-        Assert.StartsWith("RFPStorage:", Assert.Throws<ArgumentException>(() => Lib().PresignGet(Conn(bucket: ""), "k", 300)).Message);
+        Assert.StartsWith("OdcStorage:", Assert.Throws<ArgumentException>(() => Lib().PresignGet(Conn(bucket: ""), "k", 300)).Message);
 
     [Fact]
     public void EmptyServiceUrlRejected() =>
@@ -221,7 +221,7 @@ public class LibTests
     [Fact]
     public void InterfaceExposesExactlyFiveSupportedActions()
     {
-        var methods = typeof(IRFPStorageLib).GetMethods();
+        var methods = typeof(IOdcStorageLib).GetMethods();
         Assert.Equal(new[] { "BuildObjectKey", "Delete", "Head", "PresignGet", "PresignPut" },
             methods.Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal).ToArray());
         foreach (var m in methods)
